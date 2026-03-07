@@ -324,10 +324,7 @@ const Booking = () => {
             })}
           </div>
 
-          <button onClick={() => setStep(0)} className="w-full btn-gradient h-12 text-sm mt-6">
-            Готово ({selectedServiceIds.length})
-            {totalMinutes > 0 && ` · ${formatMinutes(totalMinutes)}`}
-          </button>
+          {/* Кнопка "Готово" удалена, логика перенесена в нижний бар */}
         </div>
       )}
 
@@ -457,12 +454,7 @@ const Booking = () => {
                 </div>
               )}
 
-              {selectedTime && (
-                <button onClick={() => setStep(0)} className="w-full btn-gradient h-12 text-sm mt-6">
-                  Готово · {selectedTime}
-                  {totalMinutes > 0 && ` — ${addMinutesToTime(selectedTime, totalMinutes)}`}
-                </button>
-              )}
+              {/* Кнопка "Готово" удалена, логика перенесена в нижний бар */}
             </div>
           )}
         </div>
@@ -486,11 +478,21 @@ const Booking = () => {
           </div>
         )}
         <button
-          onClick={step === 0 ? handleBook : undefined}
-          disabled={step === 0 ? !canBook || isSubmitting : false}
-          className={`w-full h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${step !== 0 || canBook
-            ? 'btn-gradient'
-            : 'bg-muted text-muted-foreground cursor-not-allowed'
+          onClick={() => {
+            if (step === 0) handleBook()
+            else if (step === 1) setStep(2)
+            else if (step === 2) setStep(0)
+          }}
+          disabled={
+            step === 0 ? (!canBook || isSubmitting) :
+              step === 1 ? selectedServiceIds.length === 0 :
+                !selectedTime
+          }
+          className={`w-full h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${(step === 0 && canBook) ||
+              (step === 1 && selectedServiceIds.length > 0) ||
+              (step === 2 && selectedTime)
+              ? 'btn-gradient'
+              : 'bg-muted text-muted-foreground cursor-not-allowed'
             }`}
         >
           {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Heart, Star, Phone, MapPin, ChevronRight, MessageCircle } from "lucide-react";
-import { mockMaster, mockServices, mockReviews } from "@/data/mock";
+import { mockMaster, mockServices } from "@/data/mock";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 
 const MasterProfile = () => {
@@ -123,35 +123,7 @@ const MasterProfile = () => {
         </div>
       </div>
 
-      {/* Reviews */}
-      <div className="px-5 mt-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-heading text-xl font-bold text-foreground">Отзывы</h2>
-          <button className="text-primary text-sm font-medium">Добавить отзыв</button>
-        </div>
-        <div className="space-y-3">
-          {mockReviews.map((review) => (
-            <div key={review.id} className="card-premium p-4 animate-fade-in">
-              <div className="flex items-center gap-3 mb-2">
-                <img src={review.avatar} alt="" className="w-9 h-9 rounded-full object-cover" />
-                <div className="flex-1">
-                  <p className="font-medium text-foreground text-sm">{review.author}</p>
-                  <p className="text-muted-foreground text-xs">{review.date}</p>
-                </div>
-                <div className="flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-3 h-3 ${i < review.rating ? "fill-primary text-primary" : "text-border"}`}
-                    />
-                  ))}
-                </div>
-              </div>
-              <p className="text-foreground text-sm leading-relaxed">{review.text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Reviews are removed */}
 
       {/* Sticky bottom bar */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-md border-t border-border px-5 py-4 flex gap-3 z-50">

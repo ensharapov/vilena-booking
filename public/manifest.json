@@ -1,6 +1,6 @@
 {
-  "name": "Вилена — Онлайн-запись",
-  "short_name": "Вилена",
+  "name": "Vilena Studio",
+  "short_name": "Vilena Studio",
   "description": "Онлайн-запись к мастерам красоты",
   "start_url": "/",
   "display": "standalone",
