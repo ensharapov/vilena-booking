@@ -18,10 +18,10 @@ const Index = () => {
             <span className="text-primary text-sm font-medium">Красота рядом</span>
           </div>
           <h1 className="text-heading text-5xl font-bold text-foreground leading-tight">
-            Вилена
+            Vilena Studio
           </h1>
           <p className="text-muted-foreground mt-3 text-base leading-relaxed max-w-xs">
-            Онлайн-запись к лучшим мастерам красоты вашего города
+            Онлайн-запись к лучшим мастерам красоты
           </p>
 
           <div className="mt-8 space-y-3">
