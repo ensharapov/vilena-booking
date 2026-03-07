@@ -53,11 +53,11 @@ export interface DBBooking {
     created_at: string
 }
 
-export interface DBSchedule {
+export interface DBWorkingShift {
     id: string
     master_id: string
-    day_of_week: number
+    date: string
     start_time: string
     end_time: string
-    is_working: boolean
+    is_active: boolean
 }

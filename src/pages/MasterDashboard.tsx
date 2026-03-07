@@ -1,17 +1,34 @@
 import { useNavigate } from "react-router-dom";
-import { mockBookings, mockMaster } from "@/data/mock";
-import { Calendar, Users, TrendingUp, ClipboardList, Star, Settings, LogOut } from "lucide-react";
+import { Calendar, Users, TrendingUp, ClipboardList, Star, Settings, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-
-const stats = [
-  { label: "Записи сегодня", value: "3", icon: Calendar, color: "bg-primary/10 text-primary" },
-  { label: "Доход за неделю", value: "32 500 ₽", icon: TrendingUp, color: "bg-whatsapp/10 text-whatsapp" },
-  { label: "Всего клиентов", value: "127", icon: Users, color: "bg-telegram/10 text-telegram" },
-];
+import { useMasterData } from "@/hooks/useMasterData";
+import { useUpcomingBookings, useMasterStats } from "@/hooks/useMasterDashboard";
+import { ShiftManager } from "@/components/master/ShiftManager";
 
 const MasterDashboard = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
+
+  // Пока берем первого мастера из БД (ID '1' -> превратится в реальный UUID)
+  const { masterQuery } = useMasterData('1');
+  const master = masterQuery.data;
+
+  const { data: bookings = [], isLoading: bookingsLoading } = useUpcomingBookings(master?.id);
+  const { data: stats, isLoading: statsLoading } = useMasterStats(master?.id);
+
+  const displayStats = [
+    { label: "Записи сегодня", value: stats?.todayCount ?? 0, icon: Calendar, color: "bg-primary/10 text-primary" },
+    { label: "Доход за неделю", value: `${(stats?.weekIncome ?? 0).toLocaleString("ru-RU")} ₽`, icon: TrendingUp, color: "bg-whatsapp/10 text-whatsapp" },
+    { label: "Всего клиентов", value: stats?.totalClients ?? 0, icon: Users, color: "bg-telegram/10 text-telegram" },
+  ];
+
+  if (masterQuery.isLoading) {
+    return (
+      <div className="app-container flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="app-container bg-background min-h-screen pb-8">
@@ -19,7 +36,7 @@ const MasterDashboard = () => {
       <div className="px-5 pt-6 pb-4 flex items-center justify-between">
         <div>
           <p className="text-muted-foreground text-sm">Добрый день,</p>
-          <h1 className="text-heading text-2xl font-bold text-foreground">{mockMaster.name}</h1>
+          <h1 className="text-heading text-2xl font-bold text-foreground">{master?.name || "Мастер"}</h1>
         </div>
         <div className="flex gap-2">
           <button className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center">
@@ -36,12 +53,16 @@ const MasterDashboard = () => {
 
       {/* Stats */}
       <div className="px-5 grid grid-cols-3 gap-3">
-        {stats.map((stat) => (
+        {displayStats.map((stat) => (
           <div key={stat.label} className="card-premium p-3 text-center">
             <div className={`w-9 h-9 rounded-xl ${stat.color} flex items-center justify-center mx-auto mb-2`}>
               <stat.icon className="w-4 h-4" />
             </div>
-            <p className="text-foreground font-bold text-lg">{stat.value}</p>
+            {statsLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
+            ) : (
+              <p className="text-foreground font-bold text-lg">{stat.value}</p>
+            )}
             <p className="text-muted-foreground text-[10px] mt-0.5 leading-tight">{stat.label}</p>
           </div>
         ))}
@@ -51,13 +72,20 @@ const MasterDashboard = () => {
       <div className="px-5 mt-6">
         <h2 className="text-heading text-lg font-bold text-foreground mb-3">Быстрые действия</h2>
         <div className="grid grid-cols-3 gap-3">
+          <ShiftManager masterId={master?.id}>
+            <button className="card-premium p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition-transform text-left">
+              <Calendar className="w-5 h-5 text-primary" />
+              <span className="text-foreground text-xs font-medium">Смены</span>
+            </button>
+          </ShiftManager>
+
           {[
-            { label: "Расписание", icon: Calendar },
-            { label: "Услуги", icon: ClipboardList },
-            { label: "Отзывы", icon: Star },
+            { label: "Услуги", icon: ClipboardList, onClick: () => console.log('Services') },
+            { label: "Профиль", icon: Star, onClick: () => navigate(`/master/${master?.id || '1'}`) },
           ].map((action) => (
             <button
               key={action.label}
+              onClick={action.onClick}
               className="card-premium p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition-transform"
             >
               <action.icon className="w-5 h-5 text-primary" />
@@ -69,21 +97,40 @@ const MasterDashboard = () => {
 
       {/* Upcoming bookings */}
       <div className="px-5 mt-6">
-        <h2 className="text-heading text-lg font-bold text-foreground mb-3">Ближайшие записи</h2>
+        <h2 className="text-heading text-lg font-bold text-foreground mb-3">Предстоящие записи</h2>
         <div className="space-y-3">
-          {mockBookings.map((booking) => (
-            <div key={booking.id} className="card-premium p-4 flex items-center gap-3 animate-fade-in">
-              <img src={booking.clientAvatar} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground text-sm truncate">{booking.clientName}</p>
-                <p className="text-muted-foreground text-xs truncate">{booking.serviceName}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-foreground font-semibold text-sm">{booking.time}</p>
-                <p className="text-muted-foreground text-xs">{booking.date}</p>
-              </div>
+          {bookingsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
-          ))}
+          ) : bookings.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-6">
+              Нет предстоящих записей
+            </p>
+          ) : (
+            bookings.map((booking) => {
+              const servicesList = booking.booking_services?.map(s => s.name).join(', ') || 'Без названий';
+              // Форматирование даты
+              const d = new Date(booking.date);
+              const formattedDate = `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+
+              return (
+                <div key={booking.id} className="card-premium p-4 flex items-center gap-3 animate-fade-in">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-primary font-bold">{booking.client_name?.charAt(0) || '?'}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground text-sm truncate">{booking.client_name || 'Клиент'}</p>
+                    <p className="text-muted-foreground text-xs truncate max-w-[180px]">{servicesList}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-foreground font-semibold text-sm">{booking.start_time.slice(0, 5)}</p>
+                    <p className="text-muted-foreground text-xs">{formattedDate}</p>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
