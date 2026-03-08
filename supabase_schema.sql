@@ -12,23 +12,23 @@ drop table if exists public.working_shifts cascade;
 drop table if exists public.services cascade;
 drop table if exists public.masters cascade;
 
--- MASTERS
-create table if not exists public.masters (
-  id           uuid primary key default gen_random_uuid(),
-  user_id      uuid references auth.users(id) on delete cascade,
-  name         text not null,
-  specialty    text,
-  city         text,
-  address      text,
-  phone        text,
-  whatsapp     text,
-  telegram     text,
-  avatar_url   text,
-  cover_url    text,
-  rating       numeric(3,2) default 0,
-  review_count int default 0,
-  is_active    boolean default true,
-  created_at   timestamptz default now()
+-- 2. Таблица мастеров (профили)
+create table public.masters (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  slug text unique, -- красивый URL, например url.com/booking/vilena
+  name text not null,
+  specialty text,
+  city text,
+  address text,
+  phone text,
+  social_links jsonb default '{"whatsapp": "", "telegram": ""}'::jsonb, -- любые мессенджеры
+  avatar_url text,
+  cover_url text,
+  rating numeric(3,2) default 5.00,
+  review_count integer default 0,
+  is_active boolean default true,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- SERVICES
@@ -54,32 +54,29 @@ create table if not exists public.working_shifts (
   is_active   boolean default true
 );
 
--- CLIENTS
-create table if not exists public.clients (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid references auth.users(id) on delete cascade,
-  name       text,
-  phone      text,
-  avatar_url text,
-  created_at timestamptz default now()
+-- 4. Таблица клиентов (CRM)
+create table public.clients (
+  id uuid primary key default gen_random_uuid(),
+  phone text unique not null,
+  name text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- BOOKINGS
-create table if not exists public.bookings (
-  id            uuid primary key default gen_random_uuid(),
-  master_id     uuid references public.masters(id) on delete cascade,
-  client_id     uuid references public.clients(id) on delete set null,
-  client_name   text,
-  client_phone  text,
-  date          date not null,
-  start_time    time not null,
-  end_time      time not null,
-  total_minutes int not null,
-  total_price   int not null,
-  status        text not null default 'upcoming'
-                check (status in ('upcoming','completed','cancelled','no_show')),
-  notes         text,
-  created_at    timestamptz default now()
+-- 5. Таблица записей
+create table public.bookings (
+  id uuid primary key default gen_random_uuid(),
+  master_id uuid references public.masters(id) on delete cascade not null,
+  client_id uuid references public.clients(id) on delete set null, -- привязка к CRM
+  client_name text, -- денормализация для простоты или fallback
+  client_phone text, -- денормализация
+  date date not null,
+  start_time time not null,
+  end_time time not null,
+  total_minutes integer not null,
+  total_price integer not null,
+  status text check (status in ('upcoming', 'completed', 'cancelled', 'no_show')) default 'upcoming' not null,
+  notes text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- BOOKING_SERVICES (услуги в записи)
@@ -186,8 +183,10 @@ create policy "shifts_owner_write" on public.working_shifts for all
   with check (exists (select 1 from public.masters m where m.id = master_id and m.user_id = auth.uid()));
 
 alter table public.clients enable row level security;
-create policy "clients_own_data" on public.clients for all
-  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- Политики для клиентов
+create policy "clients_public_read" on public.clients for select using (true);
+create policy "clients_public_insert" on public.clients for insert with check (true);
+create policy "clients_public_update" on public.clients for update using (true);
 
 alter table public.bookings enable row level security;
 create policy "bookings_master_read" on public.bookings for select
@@ -214,9 +213,22 @@ do $$
 declare
   v_master_id uuid;
 begin
-  insert into public.masters (name, specialty, city, address, phone, whatsapp, telegram, rating, review_count)
-  values ('Вилена', 'Мастер-парикмахер', 'Сочи', 'Краснодонская, 6/1', '+7 (999) 000-00-00', '79990000000', 'vilena_master', 0, 0)
-  returning id into v_master_id;
+-- Вставка демо-мастера (Вилена)
+insert into public.masters (slug, name, specialty, city, address, phone, social_links, rating, review_count, avatar_url, cover_url)
+values (
+  'vilena-nails',
+  'Вилена',
+  'Мастер ногтевого сервиса',
+  'г. Сочи',
+  'ул. Навагинская, 9Д',
+  '+7 (999) 123-45-67',
+  '{"whatsapp": "79991234567", "telegram": "vilena_nails"}'::jsonb,
+  5.0,
+  127,
+  'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?auto=format&fit=crop&q=80&w=200&h=200',
+  'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=800&h=400'
+)
+returning id into v_master_id;
 
   -- Услуги
   insert into public.services (master_id, name, duration_minutes, price, price_from, category, sort_order) values

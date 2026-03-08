@@ -104,12 +104,42 @@ const Booking = () => {
     try {
       const dateStr = selectedDate.toISOString().split('T')[0]
       const endTime = addMinutesToTime(selectedTime, totalMinutes)
+      const realMasterId = master?.id ?? masterId; // Используем реальный UUID мастера, даже если в URL slug
+
+      // Поиск или создание клиента
+      let clientId = null;
+      try {
+        const { data: existingClient } = await supabase
+          .from('clients')
+          .select('id, name')
+          .eq('phone', clientPhone)
+          .maybeSingle();
+
+        if (existingClient) {
+          clientId = existingClient.id;
+          if (!existingClient.name && clientName) {
+            await supabase.from('clients').update({ name: clientName }).eq('id', clientId);
+          }
+        } else {
+          const { data: newClient, error: clientError } = await supabase
+            .from('clients')
+            .insert({ phone: clientPhone, name: clientName })
+            .select()
+            .single();
+          if (!clientError && newClient) {
+            clientId = newClient.id;
+          }
+        }
+      } catch (e) {
+        console.warn("Client CRM integration error", e);
+      }
 
       // Создаём запись
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          master_id: masterId,
+          master_id: realMasterId,
+          client_id: clientId,
           client_name: clientName,
           client_phone: clientPhone,
           date: dateStr,
@@ -489,10 +519,10 @@ const Booking = () => {
                 !selectedTime
           }
           className={`w-full h-12 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${(step === 0 && canBook) ||
-              (step === 1 && selectedServiceIds.length > 0) ||
-              (step === 2 && selectedTime)
-              ? 'btn-gradient'
-              : 'bg-muted text-muted-foreground cursor-not-allowed'
+            (step === 1 && selectedServiceIds.length > 0) ||
+            (step === 2 && selectedTime)
+            ? 'btn-gradient'
+            : 'bg-muted text-muted-foreground cursor-not-allowed'
             }`}
         >
           {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}

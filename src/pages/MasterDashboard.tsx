@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMasterData } from "@/hooks/useMasterData";
 import { useUpcomingBookings, useMasterStats } from "@/hooks/useMasterDashboard";
 import { ShiftManager } from "@/components/master/ShiftManager";
+import { CrmTable } from "@/components/master/CrmTable";
+import { Drawer, DrawerContent, DrawerTrigger, DrawerTitle } from "@/components/ui/drawer";
 
 const MasterDashboard = () => {
   const { logout } = useAuth();
@@ -39,7 +41,10 @@ const MasterDashboard = () => {
           <h1 className="text-heading text-2xl font-bold text-foreground">{master?.name || "Мастер"}</h1>
         </div>
         <div className="flex gap-2">
-          <button className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center">
+          <button
+            onClick={() => navigate("/dashboard/master/settings")}
+            className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center"
+          >
             <Settings className="w-4 h-4 text-muted-foreground" />
           </button>
           <button
@@ -79,9 +84,21 @@ const MasterDashboard = () => {
             </button>
           </ShiftManager>
 
+          <Drawer>
+            <DrawerTrigger asChild>
+              <button className="card-premium p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition-transform text-left">
+                <Users className="w-5 h-5 text-telegram" />
+                <span className="text-foreground text-xs font-medium">Клиенты</span>
+              </button>
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[85vh] px-5 pb-8">
+              <DrawerTitle className="text-heading text-xl font-bold mb-4 mt-2">База клиентов (CRM)</DrawerTitle>
+              <CrmTable masterId={master?.id} />
+            </DrawerContent>
+          </Drawer>
+
           {[
-            { label: "Услуги", icon: ClipboardList, onClick: () => console.log('Services') },
-            { label: "Профиль", icon: Star, onClick: () => navigate(`/master/${master?.id || '1'}`) },
+            { label: "Профиль", icon: Star, onClick: () => navigate(`/master/${master?.slug || master?.id || '1'}`) },
           ].map((action) => (
             <button
               key={action.label}
@@ -133,7 +150,7 @@ const MasterDashboard = () => {
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 

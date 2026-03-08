@@ -10,6 +10,7 @@ import RoleSelect from "./pages/RoleSelect";
 import MasterProfile from "./pages/MasterProfile";
 import Booking from "./pages/Booking";
 import MasterDashboard from "./pages/MasterDashboard";
+import MasterSettings from "./pages/MasterSettings";
 import ClientDashboard from "./pages/ClientDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/master/:id" element={<MasterProfile />} />
               <Route path="/booking/:masterId" element={<Booking />} />
               <Route path="/dashboard/master" element={<MasterDashboard />} />
+              <Route path="/dashboard/master/settings" element={<MasterSettings />} />
               <Route path="/dashboard/client" element={<ClientDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

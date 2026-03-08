@@ -10,13 +10,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export interface DBMaster {
     id: string
     user_id: string | null
+    slug: string | null
     name: string
     specialty: string | null
     city: string | null
     address: string | null
     phone: string | null
-    whatsapp: string | null
-    telegram: string | null
+    social_links: Record<string, string>
     avatar_url: string | null
     cover_url: string | null
     rating: number
@@ -35,6 +35,13 @@ export interface DBService {
     category: string | null
     sort_order: number
     is_active: boolean
+}
+
+export interface DBClient {
+    id: string
+    phone: string
+    name: string | null
+    created_at: string
 }
 
 export interface DBBooking {

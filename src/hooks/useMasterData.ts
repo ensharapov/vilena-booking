@@ -10,7 +10,13 @@ export function useMasterData(masterId: string) {
             if (masterId === '1') {
                 query = query.limit(1)
             } else {
-                query = query.eq('id', masterId)
+                // Ищем либо по UUID, либо по slug
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(masterId);
+                if (isUuid) {
+                    query = query.eq('id', masterId)
+                } else {
+                    query = query.eq('slug', masterId)
+                }
             }
 
             const { data, error } = await query.single()
