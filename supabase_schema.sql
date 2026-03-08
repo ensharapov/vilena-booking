@@ -57,6 +57,7 @@ create table if not exists public.working_shifts (
 -- 4. Таблица клиентов (CRM)
 create table public.clients (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
   phone text unique not null,
   name text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
