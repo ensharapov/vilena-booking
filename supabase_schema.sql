@@ -25,6 +25,7 @@ create table public.masters (
   social_links jsonb default '{"whatsapp": "", "telegram": ""}'::jsonb, -- любые мессенджеры
   avatar_url text,
   cover_url text,
+  telegram_chat_id text, -- для уведомлений мастеру при новой записи
   rating numeric(3,2) default 5.00,
   review_count integer default 0,
   is_active boolean default true,
