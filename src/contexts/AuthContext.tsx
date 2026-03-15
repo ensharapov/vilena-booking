@@ -1,36 +1,94 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
-
-type UserRole = "master" | "client" | null;
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase, type DBMaster } from "@/lib/supabase";
+import type { Session, User } from "@supabase/supabase-js";
 
 interface AuthState {
-  isAuthenticated: boolean;
-  email: string | null;
-  role: UserRole;
-  login: (email: string) => void;
-  logout: () => void;
-  setRole: (role: UserRole) => void;
+  session: Session | null;
+  user: User | null;
+  master: DBMaster | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [email, setEmail] = useState<string | null>(null);
-  const [role, setRole] = useState<UserRole>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [master, setMaster] = useState<DBMaster | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = (email: string) => {
-    setEmail(email);
-    setIsAuthenticated(true);
+  // Загрузить профиль мастера по user_id
+  const fetchMaster = async (userId: string) => {
+    const { data } = await supabase
+      .from("masters")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    setMaster(data);
   };
 
-  const logout = () => {
-    setEmail(null);
-    setIsAuthenticated(false);
-    setRole(null);
+  useEffect(() => {
+    // Восстановить сессию при загрузке
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        fetchMaster(session.user.id).finally(() => setIsLoading(false));
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    // Слушать изменения авторизации
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setSession(session);
+        if (session?.user) {
+          await fetchMaster(session.user.id);
+        } else {
+          setMaster(null);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error: error?.message ?? null };
+  };
+
+  const signUp = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    return { error: error?.message ?? null };
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setMaster(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, email, role, login, logout, setRole }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user: session?.user ?? null,
+        master,
+        isLoading,
+        signIn,
+        signUp,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
