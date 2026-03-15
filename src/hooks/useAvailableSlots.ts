@@ -22,7 +22,9 @@ export function useAvailableSlots({
     date,
     sessionMinutes,
 }: UseAvailableSlotsParams) {
-    const dateStr = date ? date.toISOString().split('T')[0] : null
+    const dateStr = date
+        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+        : null
 
     return useQuery({
         queryKey: ['available_slots', masterId, dateStr, sessionMinutes],

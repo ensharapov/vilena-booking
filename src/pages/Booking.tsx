@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { ArrowLeft, ClipboardList, CalendarDays, Check, Clock, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
@@ -34,8 +34,7 @@ function addMinutesToTime(timeStr: string, minutes: number): string {
 }
 
 const Booking = () => {
-  const navigate = useNavigate()
-  const { id: masterId = '1' } = useParams<{ id: string }>()
+  const { slug: masterId = '' } = useParams<{ slug: string }>()
   const { toast } = useToast()
 
   const [step, setStep] = useState(0)
@@ -102,7 +101,7 @@ const Booking = () => {
     if (!canBook || !selectedDate || !selectedTime) return
     setIsSubmitting(true)
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0]
+      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
       const endTime = addMinutesToTime(selectedTime, totalMinutes)
       const realMasterId = master?.id ?? masterId; // Используем реальный UUID мастера, даже если в URL slug
 
@@ -134,10 +133,15 @@ const Booking = () => {
         console.warn("Client CRM integration error", e);
       }
 
+      // Генерируем UUID на клиенте — чтобы не делать SELECT после INSERT
+      // (анонимный клиент не имеет прав читать bookings по RLS)
+      const bookingId = crypto.randomUUID()
+
       // Создаём запись
-      const { data: booking, error: bookingError } = await supabase
+      const { error: bookingError } = await supabase
         .from('bookings')
         .insert({
+          id: bookingId,
           master_id: realMasterId,
           client_id: clientId,
           client_name: clientName,
@@ -149,8 +153,6 @@ const Booking = () => {
           total_price: totalPrice,
           status: 'upcoming',
         })
-        .select()
-        .single()
 
       if (bookingError) throw bookingError
 
@@ -159,7 +161,7 @@ const Booking = () => {
         selectedServiceIds.includes(s.id)
       )
       const bookingServices = selectedServices.map((s) => ({
-        booking_id: booking.id,
+        booking_id: bookingId,
         service_id: s.id,
         name: s.name,
         price: s.price,
@@ -172,11 +174,17 @@ const Booking = () => {
         title: '✅ Запись подтверждена!',
         description: `${selectedDate.getDate()} ${RUSSIAN_MONTHS_GEN[calMonth]} в ${selectedTime}, ${formatMinutes(totalMinutes)}`,
       })
-      navigate(`/master/${masterId}`)
+      // Сбрасываем форму на экран подтверждения
+      setStep(0)
+      setSelectedServiceIds([])
+      setSelectedDate(null)
+      setSelectedTime(null)
+      setClientName('')
+      setClientPhone('')
     } catch (err: unknown) {
       toast({
         title: 'Ошибка записи',
-        description: err instanceof Error ? err.message : 'Попробуйте ещё раз',
+        description: (err as any)?.message ?? 'Попробуйте ещё раз',
         variant: 'destructive',
       })
     } finally {
@@ -209,13 +217,28 @@ const Booking = () => {
     )
   }
 
+  // ─── Мастер не найден ─────────────────────────────────────────
+  if (masterQuery.isError || !master) {
+    return (
+      <div className="app-container bg-background flex flex-col items-center justify-center min-h-screen px-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+          <CalendarDays className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <h1 className="text-heading text-xl font-bold text-foreground">Страница не найдена</h1>
+        <p className="text-muted-foreground text-sm mt-2">
+          Мастер с этой ссылкой не зарегистрирован
+        </p>
+      </div>
+    )
+  }
+
   // ─── Рендер ──────────────────────────────────────────────────
   return (
     <div className="app-container bg-background min-h-screen pb-36 flex flex-col">
       {/* Header */}
       <div className="px-5 pt-4 pb-3 flex items-center gap-3 border-b border-border">
         <button
-          onClick={() => (step > 0 ? setStep(step - 1) : navigate(-1))}
+          onClick={() => (step > 0 ? setStep(step - 1) : window.history.back())}
           className="active:scale-90 transition-transform"
         >
           <ArrowLeft className="w-5 h-5 text-foreground" />
@@ -260,7 +283,14 @@ const Booking = () => {
 
           {/* Дата и время */}
           <button
-            onClick={() => setStep(2)}
+            onClick={() => {
+              if (selectedServiceIds.length === 0) {
+                toast({ title: 'Сначала выберите услугу', description: 'Нам нужно знать длительность сеанса' })
+                setStep(1)
+                return
+              }
+              setStep(2)
+            }}
             className="w-full card-premium p-4 flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
           >
             <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">

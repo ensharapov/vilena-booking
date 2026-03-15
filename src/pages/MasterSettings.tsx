@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Save, Loader2, Link as LinkIcon, Phone, Bell } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Link as LinkIcon, Phone, Bell, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+
+const BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME ?? "";
 
 // Фиксированные 4 канала связи
 const CONTACT_FIELDS = [
@@ -22,7 +24,6 @@ export default function MasterSettings() {
 
     const [name, setName] = useState("");
     const [slug, setSlug] = useState("");
-    const [telegramChatId, setTelegramChatId] = useState("");
     const [contacts, setContacts] = useState<Record<ContactKey, string>>({
         telegram: "",
         whatsapp: "",
@@ -46,11 +47,21 @@ export default function MasterSettings() {
         },
     });
 
+    // Автообновление при возврате из Telegram
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                queryClient.invalidateQueries({ queryKey: ["master_settings"] });
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }, [queryClient]);
+
     useEffect(() => {
         if (master) {
             setName(master.name || "");
             setSlug(master.slug || "");
-            setTelegramChatId(master.telegram_chat_id || "");
             const links = master.social_links as Record<string, string> || {};
             setContacts({
                 telegram: links.telegram || "",
@@ -77,7 +88,6 @@ export default function MasterSettings() {
                     name: name.trim(),
                     slug: slug.trim() || null,
                     social_links: linksObj,
-                    telegram_chat_id: telegramChatId.trim() || null,
                 })
                 .eq("id", master.id);
 
@@ -93,6 +103,22 @@ export default function MasterSettings() {
             } else {
                 toast({ title: "Ошибка", description: error.message, variant: "destructive" });
             }
+        },
+    });
+
+    const disconnectTelegram = useMutation({
+        mutationFn: async () => {
+            if (!master?.id) throw new Error("Мастер не найден");
+            const { error } = await supabase
+                .from("masters")
+                .update({ telegram_chat_id: null })
+                .eq("id", master.id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            toast({ title: "Telegram отключён", description: "Уведомления больше не будут приходить" });
+            queryClient.invalidateQueries({ queryKey: ["master_settings"] });
+            queryClient.invalidateQueries({ queryKey: ["master"] });
         },
     });
 
@@ -136,7 +162,7 @@ export default function MasterSettings() {
                         </label>
                         <div className="flex items-center">
                             <span className="h-12 px-3 flex items-center bg-secondary/50 border border-border border-r-0 rounded-l-xl text-muted-foreground text-xs">
-                                beautybooking.app/
+                                vilena.app/
                             </span>
                             <input
                                 type="text"
@@ -184,25 +210,43 @@ export default function MasterSettings() {
                             Уведомления о записях
                         </h2>
                         <p className="text-[11px] text-muted-foreground mt-1">
-                            Введите ваш Telegram Chat ID и при каждой новой записи бот пришлёт вам алерт.
+                            Подключите Telegram — и при каждой новой записи вы получите мгновенное уведомление.
                         </p>
                     </div>
 
-                    <div className="card-premium p-4 space-y-3">
-                        <div className="space-y-1.5">
-                            <label className="text-xs text-muted-foreground ml-1">Telegram Chat ID</label>
-                            <input
-                                type="text"
-                                value={telegramChatId}
-                                onChange={(e) => setTelegramChatId(e.target.value.replace(/[^0-9-]/g, ""))}
-                                className="w-full h-11 px-4 rounded-xl bg-background border border-border focus:ring-1 focus:ring-primary focus:outline-none text-sm font-mono"
-                                placeholder="123456789"
-                            />
+                    {master?.telegram_chat_id ? (
+                        <div className="card-premium p-4 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
+                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground">Уведомления подключены</p>
+                                <p className="text-xs text-muted-foreground">Каждая новая запись придёт в Telegram</p>
+                            </div>
+                            <button
+                                onClick={() => disconnectTelegram.mutate()}
+                                disabled={disconnectTelegram.isPending}
+                                className="text-xs text-destructive shrink-0 px-2 py-1"
+                            >
+                                {disconnectTelegram.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Отключить"}
+                            </button>
                         </div>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">
-                            Чтобы узнать свой Chat ID: напишите <span className="text-primary font-medium">@userinfobot</span> в Telegram — он ответит вашим ID.
-                        </p>
-                    </div>
+                    ) : (
+                        <a
+                            href={`https://t.me/${BOT_USERNAME}?start=${master?.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full card-premium p-4 flex items-center gap-4 text-left active:scale-[0.98] transition-transform"
+                        >
+                            <div className="w-10 h-10 rounded-xl bg-telegram/10 flex items-center justify-center shrink-0">
+                                <Bell className="w-5 h-5 text-telegram" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-foreground">Подключить уведомления</p>
+                                <p className="text-xs text-muted-foreground">Нажмите — откроется Telegram, нажмите Start</p>
+                            </div>
+                        </a>
+                    )}
                 </section>
 
                 <button
