@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { formatLocalDate } from '@/lib/formatLocalDate'
 import type { DBBooking, DBWorkingShift, DBService } from '@/lib/supabase'
 
 export interface BookingWithServices extends DBBooking {
@@ -19,7 +20,7 @@ export function useUpcomingBookings(masterId: string | undefined) {
         queryFn: async (): Promise<BookingWithServices[]> => {
             if (!masterId) return []
 
-            const today = new Date().toISOString().split('T')[0]
+            const today = formatLocalDate()
 
             const { data, error } = await supabase
                 .from('bookings')
@@ -49,13 +50,13 @@ export function useMasterStats(masterId: string | undefined) {
             if (!masterId) return { todayCount: 0, weekIncome: 0, totalClients: 0 }
 
             const today = new Date()
-            const todayStr = today.toISOString().split('T')[0]
+            const todayStr = formatLocalDate(today)
 
             // Начало недели (Понедельник)
             const weekStart = new Date(today)
             const day = weekStart.getDay() || 7 // 1-7
-            if (day !== 1) weekStart.setHours(-24 * (day - 1))
-            const weekStartStr = weekStart.toISOString().split('T')[0]
+            if (day !== 1) weekStart.setDate(weekStart.getDate() - (day - 1))
+            const weekStartStr = formatLocalDate(weekStart)
 
             // 1. Записи сегодня
             const { count: todayCount, error: err1 } = await supabase
@@ -106,7 +107,7 @@ export function useMasterShifts(masterId: string | undefined, limit = 10) {
         queryFn: async (): Promise<DBWorkingShift[]> => {
             if (!masterId) return []
 
-            const today = new Date().toISOString().split('T')[0]
+            const today = formatLocalDate()
 
             const { data, error } = await supabase
                 .from('working_shifts')

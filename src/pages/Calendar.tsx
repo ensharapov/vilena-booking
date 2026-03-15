@@ -81,7 +81,7 @@ export default function Calendar() {
   return (
     <div className="app-container bg-background min-h-screen">
       {/* Month header */}
-      <div className="px-5 pt-6 pb-2 flex items-center justify-between">
+      <div className="px-4 pt-6 pb-2 flex items-center justify-between">
         <h1 className="text-heading text-xl font-bold text-foreground">
           {RUSSIAN_MONTHS[calMonth]} {calYear}
         </h1>
@@ -102,7 +102,7 @@ export default function Calendar() {
       </div>
 
       {/* Calendar grid */}
-      <div className="px-5 mt-2">
+      <div className="px-4 mt-2">
         <div className="grid grid-cols-7 gap-0">
           {RUSSIAN_WEEKDAYS.map((d) => (
             <div key={d} className="text-center text-xs text-muted-foreground font-medium py-2">
@@ -176,7 +176,7 @@ export default function Calendar() {
       </div>
 
       {/* Bookings for selected day */}
-      <div className="px-5 mt-6">
+      <div className="px-4 mt-6">
         {selectedDay && (
           <>
             <h2 className="text-heading text-base font-bold text-foreground mb-3">

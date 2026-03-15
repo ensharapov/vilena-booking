@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpcomingBookings, useMasterStats, type BookingWithServices } from "@/hooks/useMasterDashboard";
+import { formatLocalDate } from "@/lib/formatLocalDate";
 import { Loader2, Clock, CalendarCheck, TrendingUp } from "lucide-react";
 
 const RUSSIAN_MONTHS_GEN = [
@@ -24,7 +25,7 @@ export default function Today() {
   const { data: stats } = useMasterStats(master?.id);
 
   const now = new Date();
-  const todayStr = now.toISOString().split("T")[0];
+  const todayStr = formatLocalDate(now);
   const dateLabel = `${now.getDate()} ${RUSSIAN_MONTHS_GEN[now.getMonth()]}, ${WEEKDAYS[now.getDay()]}`;
 
   // Записи на сегодня
@@ -47,14 +48,14 @@ export default function Today() {
   return (
     <div className="app-container bg-background min-h-screen">
       {/* Header */}
-      <div className="px-5 pt-6 pb-2">
+      <div className="px-4 pt-6 pb-2">
         <p className="text-muted-foreground text-sm">{getGreeting()},</p>
         <h1 className="text-heading text-2xl font-bold text-foreground">{master?.name || "Мастер"}</h1>
         <p className="text-muted-foreground text-xs mt-1 capitalize">{dateLabel}</p>
       </div>
 
       {/* Summary strip */}
-      <div className="px-5 mt-4 grid grid-cols-3 gap-3">
+      <div className="px-4 mt-4 grid grid-cols-3 gap-3">
         <div className="card-premium p-3 text-center">
           <CalendarCheck className="w-4 h-4 text-primary mx-auto mb-1" />
           <p className="text-foreground font-bold text-lg">{stats?.todayCount ?? 0}</p>
@@ -77,7 +78,7 @@ export default function Today() {
       </div>
 
       {/* Timeline */}
-      <div className="px-5 mt-6">
+      <div className="px-4 mt-6">
         <h2 className="text-heading text-lg font-bold text-foreground mb-3">Расписание</h2>
 
         {bookingsLoading ? (
@@ -103,7 +104,7 @@ export default function Today() {
 
       {/* Upcoming (other days) */}
       {allBookings.filter((b) => b.date > todayStr).length > 0 && (
-        <div className="px-5 mt-8 mb-4">
+        <div className="px-4 mt-8 mb-4">
           <h2 className="text-heading text-lg font-bold text-foreground mb-3">Ближайшие</h2>
           <div className="space-y-3">
             {allBookings
