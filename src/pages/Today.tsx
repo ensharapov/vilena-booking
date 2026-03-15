@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpcomingBookings, useMasterStats, type BookingWithServices } from "@/hooks/useMasterDashboard";
 import { formatLocalDate } from "@/lib/formatLocalDate";
+import { BookingDetailDrawer } from "@/components/BookingDetailDrawer";
 import { Loader2, Clock, CalendarCheck, TrendingUp } from "lucide-react";
 
 const RUSSIAN_MONTHS_GEN = [
@@ -23,6 +24,7 @@ export default function Today() {
   const { master } = useAuth();
   const { data: allBookings = [], isLoading: bookingsLoading } = useUpcomingBookings(master?.id);
   const { data: stats } = useMasterStats(master?.id);
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithServices | null>(null);
 
   const now = new Date();
   const todayStr = formatLocalDate(now);
@@ -96,7 +98,7 @@ export default function Today() {
         ) : (
           <div className="space-y-3">
             {todayBookings.map((booking) => (
-              <BookingCard key={booking.id} booking={booking} />
+              <BookingCard key={booking.id} booking={booking} onClick={() => setSelectedBooking(booking)} />
             ))}
           </div>
         )}
@@ -111,23 +113,29 @@ export default function Today() {
               .filter((b) => b.date > todayStr)
               .slice(0, 5)
               .map((booking) => (
-                <BookingCard key={booking.id} booking={booking} showDate />
+                <BookingCard key={booking.id} booking={booking} showDate onClick={() => setSelectedBooking(booking)} />
               ))}
           </div>
         </div>
       )}
+
+      <BookingDetailDrawer
+        booking={selectedBooking}
+        open={!!selectedBooking}
+        onOpenChange={(open) => { if (!open) setSelectedBooking(null); }}
+      />
     </div>
   );
 }
 
-function BookingCard({ booking, showDate }: { booking: BookingWithServices; showDate?: boolean }) {
+function BookingCard({ booking, showDate, onClick }: { booking: BookingWithServices; showDate?: boolean; onClick?: () => void }) {
   const servicesList = booking.booking_services?.map((s) => s.name).join(", ") || "Без услуг";
 
   const d = new Date(booking.date);
   const formattedDate = `${d.getDate().toString().padStart(2, "0")}.${(d.getMonth() + 1).toString().padStart(2, "0")}`;
 
   return (
-    <div className="card-premium p-4 flex items-center gap-3 animate-fade-in">
+    <div className="card-premium p-4 flex items-center gap-3 animate-fade-in cursor-pointer active:scale-[0.98] transition-transform" onClick={onClick}>
       {/* Time block */}
       <div className="w-14 text-center shrink-0">
         <p className="text-foreground font-bold text-sm">{booking.start_time.slice(0, 5)}</p>

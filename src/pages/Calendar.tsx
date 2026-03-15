@@ -4,11 +4,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useWorkingDates } from "@/hooks/useMasterData";
 import type { BookingWithServices } from "@/hooks/useMasterDashboard";
+import { BookingDetailDrawer } from "@/components/BookingDetailDrawer";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 const RUSSIAN_MONTHS = [
   "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
   "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+];
+const RUSSIAN_MONTHS_GEN = [
+  "января", "февраля", "марта", "апреля", "мая", "июня",
+  "июля", "августа", "сентября", "октября", "ноября", "декабря",
 ];
 const RUSSIAN_WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -43,11 +48,11 @@ export default function Calendar() {
   const [calYear, setCalYear] = useState(now.getFullYear());
   const [calMonth, setCalMonth] = useState(now.getMonth());
   const [selectedDay, setSelectedDay] = useState<number | null>(now.getDate());
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithServices | null>(null);
 
   const { data: bookings = [], isLoading } = useMonthBookings(master?.id, calYear, calMonth);
   const { data: workingDates = [] } = useWorkingDates(master?.id ?? "", calYear, calMonth);
 
-  // Group bookings by day
   const bookingsByDay = useMemo(() => {
     const map = new Map<number, BookingWithServices[]>();
     bookings.forEach((b) => {
@@ -60,10 +65,11 @@ export default function Calendar() {
 
   const selectedBookings = selectedDay ? bookingsByDay.get(selectedDay) ?? [] : [];
 
-  // Calendar grid
+  // Always 42 cells (6 rows × 7 cols) — grid stays same height every month
   const firstDayOfMonth = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+  const totalCells = 42;
 
   const prevMonth = () => {
     if (calMonth === 0) { setCalMonth(11); setCalYear((y) => y - 1); }
@@ -101,19 +107,22 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* Calendar grid */}
+      {/* Calendar grid — always 6 rows, never jumps */}
       <div className="px-4 mt-2">
-        <div className="grid grid-cols-7 gap-0">
+        <div className="grid grid-cols-7">
           {RUSSIAN_WEEKDAYS.map((d) => (
             <div key={d} className="text-center text-xs text-muted-foreground font-medium py-2">
               {d}
             </div>
           ))}
-          {Array.from({ length: startOffset }).map((_, i) => (
-            <div key={`e-${i}`} />
-          ))}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
+          {Array.from({ length: totalCells }).map((_, i) => {
+            const day = i - startOffset + 1;
+            const isValid = day >= 1 && day <= daysInMonth;
+
+            if (!isValid) {
+              return <div key={`empty-${i}`} className="h-11" />;
+            }
+
             const hasBookings = bookingsByDay.has(day);
             const bookingCount = bookingsByDay.get(day)?.length ?? 0;
             const isWorking = workingDates.includes(day);
@@ -125,14 +134,14 @@ export default function Calendar() {
               <button
                 key={day}
                 onClick={() => setSelectedDay(day)}
-                className={`relative flex flex-col items-center justify-center h-11 w-full text-sm transition-all rounded-xl ${
+                className={`relative flex flex-col items-center justify-center h-11 w-full text-sm rounded-xl ${
                   isSelected
                     ? "bg-primary text-primary-foreground font-semibold"
                     : isToday
                       ? "bg-accent font-semibold text-foreground"
                       : isPast
                         ? "text-muted-foreground/40"
-                        : "text-foreground hover:bg-accent/50"
+                        : "text-foreground"
                 }`}
               >
                 {bookingCount > 0 && !isSelected && (
@@ -143,18 +152,10 @@ export default function Calendar() {
                 <span className="leading-none">{day}</span>
                 <div className="flex gap-0.5 mt-0.5 h-1.5">
                   {isWorking && (
-                    <span
-                      className={`w-1 h-1 rounded-full ${
-                        isSelected ? "bg-primary-foreground" : "bg-primary"
-                      }`}
-                    />
+                    <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-primary"}`} />
                   )}
                   {hasBookings && (
-                    <span
-                      className={`w-1 h-1 rounded-full ${
-                        isSelected ? "bg-primary-foreground" : "bg-whatsapp"
-                      }`}
-                    />
+                    <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-whatsapp"}`} />
                   )}
                 </div>
               </button>
@@ -175,52 +176,62 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* Bookings for selected day */}
-      <div className="px-4 mt-6">
-        {selectedDay && (
-          <>
-            <h2 className="text-heading text-base font-bold text-foreground mb-3">
-              {selectedDay} {RUSSIAN_MONTHS[calMonth].toLowerCase()}
-            </h2>
+      {/* Bookings — fixed min-height so page doesn't jump */}
+      <div className="px-4 mt-4 pb-4 min-h-[220px]">
+        <h2 className="text-heading text-base font-bold text-foreground mb-3">
+          {selectedDay
+            ? `${selectedDay} ${RUSSIAN_MONTHS_GEN[calMonth]}`
+            : "Выберите день"}
+        </h2>
 
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              </div>
-            ) : selectedBookings.length === 0 ? (
-              <p className="text-muted-foreground text-sm text-center py-6">
-                {workingDates.includes(selectedDay) ? "Нет записей" : "Нерабочий день"}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {selectedBookings.map((booking) => {
-                  const servicesList = booking.booking_services?.map((s) => s.name).join(", ") || "Без услуг";
-                  return (
-                    <div key={booking.id} className="card-premium p-4 flex items-center gap-3 animate-fade-in">
-                      <div className="w-14 text-center shrink-0">
-                        <p className="text-foreground font-bold text-sm">{booking.start_time.slice(0, 5)}</p>
-                        <p className="text-muted-foreground text-[10px]">{booking.end_time.slice(0, 5)}</p>
-                      </div>
-                      <div className="w-px h-10 bg-border shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground text-sm truncate">
-                          {booking.client_name || "Клиент"}
-                        </p>
-                        <p className="text-muted-foreground text-xs truncate">{servicesList}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-foreground font-semibold text-sm">
-                          {booking.total_price.toLocaleString("ru-RU")} ₽
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
+        {!selectedDay ? (
+          <p className="text-muted-foreground text-sm text-center py-6">Нажмите на дату</p>
+        ) : isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        ) : selectedBookings.length === 0 ? (
+          <p className="text-muted-foreground text-sm text-center py-6">
+            {workingDates.includes(selectedDay) ? "Нет записей" : "Нерабочий день"}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {selectedBookings.map((booking) => {
+              const servicesList = booking.booking_services?.map((s) => s.name).join(", ") || "Без услуг";
+              return (
+                <div
+                  key={booking.id}
+                  className="card-premium p-4 flex items-center gap-3 cursor-pointer active:scale-[0.98] transition-transform"
+                  onClick={() => setSelectedBooking(booking)}
+                >
+                  <div className="w-14 text-center shrink-0">
+                    <p className="text-foreground font-bold text-sm">{booking.start_time.slice(0, 5)}</p>
+                    <p className="text-muted-foreground text-[10px]">{booking.end_time.slice(0, 5)}</p>
+                  </div>
+                  <div className="w-px h-10 bg-border shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground text-sm truncate">
+                      {booking.client_name || "Клиент"}
+                    </p>
+                    <p className="text-muted-foreground text-xs truncate">{servicesList}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-foreground font-semibold text-sm">
+                      {booking.total_price.toLocaleString("ru-RU")} ₽
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
+
+      <BookingDetailDrawer
+        booking={selectedBooking}
+        open={!!selectedBooking}
+        onOpenChange={(open) => { if (!open) setSelectedBooking(null); }}
+      />
     </div>
   );
 }

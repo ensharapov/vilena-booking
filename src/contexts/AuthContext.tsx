@@ -30,8 +30,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // Таймаут на случай зависания Supabase (старый браузер / плохая сеть)
+    const timeout = setTimeout(() => setIsLoading(false), 5000);
+
     // Восстановить сессию при загрузке
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(timeout);
       setSession(session);
       if (session?.user) {
         fetchMaster(session.user.id).finally(() => setIsLoading(false));
