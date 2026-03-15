@@ -125,7 +125,7 @@ export default function Calendar() {
               <button
                 key={day}
                 onClick={() => setSelectedDay(day)}
-                className={`relative flex flex-col items-center justify-center py-2 text-sm transition-all rounded-xl ${
+                className={`relative flex flex-col items-center justify-center h-11 w-full text-sm transition-all rounded-xl ${
                   isSelected
                     ? "bg-primary text-primary-foreground font-semibold"
                     : isToday
@@ -135,7 +135,12 @@ export default function Calendar() {
                         : "text-foreground hover:bg-accent/50"
                 }`}
               >
-                {day}
+                {bookingCount > 0 && !isSelected && (
+                  <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground text-[8px] font-bold flex items-center justify-center">
+                    {bookingCount}
+                  </span>
+                )}
+                <span className="leading-none">{day}</span>
                 <div className="flex gap-0.5 mt-0.5 h-1.5">
                   {isWorking && (
                     <span
@@ -152,11 +157,6 @@ export default function Calendar() {
                     />
                   )}
                 </div>
-                {bookingCount > 0 && !isSelected && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
-                    {bookingCount}
-                  </span>
-                )}
               </button>
             );
           })}
