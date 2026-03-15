@@ -12,7 +12,7 @@ export function BottomNav() {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-card/95 backdrop-blur-md border-t border-border z-50">
+    <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 w-[calc(100%-2.5rem)] max-w-[390px] bg-card/95 backdrop-blur-md border border-border/60 rounded-2xl shadow-lg z-50">
       <div className="flex items-center justify-around h-14">
         {tabs.map((tab) => {
           const isActive =
