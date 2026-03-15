@@ -23,7 +23,7 @@ export default function More() {
 
   return (
     <div className="app-container bg-background min-h-screen">
-      <div className="px-5 pt-6 pb-4">
+      <div className="px-4 pt-6 pb-4">
         <h1 className="text-heading text-2xl font-bold text-foreground">
           {master?.name || "Мастер"}
         </h1>
@@ -32,7 +32,7 @@ export default function More() {
         )}
       </div>
 
-      <div className="px-5 space-y-2">
+      <div className="px-4 space-y-2">
         <button
           onClick={() => navigate("/services")}
           className="w-full card-premium p-4 flex items-center gap-4 text-left active:scale-[0.98] transition-transform"

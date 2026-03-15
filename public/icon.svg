@@ -4,44 +4,7 @@
       <stop offset="0%" style="stop-color:#B8A9D9"/>
       <stop offset="100%" style="stop-color:#7B6BA0"/>
     </linearGradient>
-    <linearGradient id="white" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#f0ecf8;stop-opacity:1"/>
-    </linearGradient>
   </defs>
-
-  <!-- Background with rounded corners -->
   <rect width="512" height="512" rx="110" fill="url(#bg)"/>
-
-  <!-- Calendar body -->
-  <rect x="96" y="148" width="320" height="260" rx="28" fill="url(#white)"/>
-
-  <!-- Calendar top bar -->
-  <rect x="96" y="148" width="320" height="76" rx="28" fill="#9B8EC4"/>
-  <rect x="96" y="196" width="320" height="28" fill="#9B8EC4"/>
-
-  <!-- Calendar pins -->
-  <rect x="168" y="118" width="24" height="56" rx="12" fill="#7B6BA0"/>
-  <rect x="320" y="118" width="24" height="56" rx="12" fill="#7B6BA0"/>
-
-  <!-- Scissors blades -->
-  <!-- Left blade -->
-  <g transform="translate(256, 318) rotate(-20)">
-    <ellipse cx="-52" cy="0" rx="44" ry="16" fill="#9B8EC4" opacity="0.9"/>
-    <rect x="-20" y="-8" width="72" height="16" rx="8" fill="#9B8EC4" opacity="0.9"/>
-  </g>
-  <!-- Right blade -->
-  <g transform="translate(256, 318) rotate(20)">
-    <ellipse cx="-52" cy="0" rx="44" ry="16" fill="#7B6BA0" opacity="0.9"/>
-    <rect x="-20" y="-8" width="72" height="16" rx="8" fill="#7B6BA0" opacity="0.9"/>
-  </g>
-  <!-- Center pivot -->
-  <circle cx="256" cy="318" r="14" fill="#5A4D80"/>
-
-  <!-- Calendar dots (grid) -->
-  <circle cx="172" cy="256" r="10" fill="#9B8EC4" opacity="0.5"/>
-  <circle cx="216" cy="256" r="10" fill="#9B8EC4" opacity="0.5"/>
-  <circle cx="260" cy="256" r="10" fill="#9B8EC4" opacity="0.5"/>
-  <circle cx="304" cy="256" r="10" fill="#9B8EC4" opacity="0.5"/>
-  <circle cx="348" cy="256" r="10" fill="#9B8EC4" opacity="0.5"/>
+  <text x="256" y="340" text-anchor="middle" font-family="Georgia, serif" font-size="320" font-weight="700" fill="white" opacity="0.95">V</text>
 </svg>
