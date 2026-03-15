@@ -78,9 +78,9 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="app-container bg-background min-h-screen flex flex-col">
+    <div className="app-container bg-background flex flex-col" style={{ height: "100dvh" }}>
       {/* Progress */}
-      <div className="px-5 pt-6 flex gap-1.5">
+      <div className="px-5 pt-6 flex gap-1.5 shrink-0">
         {STEPS.map((_, i) => (
           <div
             key={i}
@@ -91,7 +91,7 @@ export default function Onboarding() {
         ))}
       </div>
 
-      <div className="flex-1 flex flex-col px-5 pt-8">
+      <div className="flex-1 overflow-y-auto flex flex-col px-5 pt-8">
         <h1 className="text-heading text-2xl font-bold text-foreground">
           {STEPS[step].title}
         </h1>
@@ -187,8 +187,8 @@ export default function Onboarding() {
         )}
       </div>
 
-      {/* Bottom button */}
-      <div className="px-5 py-6">
+      {/* Bottom button — shrink-0 чтобы не сжималась при открытой клавиатуре */}
+      <div className="shrink-0 px-5 py-6 bg-background">
         <button
           onClick={handleNext}
           disabled={!canProceed() || isSubmitting}

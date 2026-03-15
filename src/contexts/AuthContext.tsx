@@ -30,18 +30,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    // Таймаут на случай зависания Supabase (старый браузер / плохая сеть)
-    const timeout = setTimeout(() => setIsLoading(false), 5000);
+    let cancelled = false;
 
-    // Восстановить сессию при загрузке
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      clearTimeout(timeout);
-      setSession(session);
-      if (session?.user) {
-        fetchMaster(session.user.id).finally(() => setIsLoading(false));
-      } else {
+    // Race getSession с таймаутом — если зависает, через 5с показываем app
+    const sessionTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+
+    Promise.race([supabase.auth.getSession(), sessionTimeout]).then(async (result) => {
+      if (cancelled) return;
+
+      if (result === null) {
+        // Таймаут — getSession завис (старый кэш / плохая сеть)
         setIsLoading(false);
+        return;
       }
+
+      const { data: { session } } = result;
+      setSession(session);
+      // Ждём fetchMaster перед снятием isLoading — иначе ProtectedRoute уйдёт в онбординг
+      if (session?.user) await fetchMaster(session.user.id);
+      if (!cancelled) setIsLoading(false);
     });
 
     // Слушать изменения авторизации
@@ -56,7 +63,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
