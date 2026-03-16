@@ -22,15 +22,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Флаг: fetchMaster запущен, но ещё не завершился — не редиректить на онбординг
   const [isMasterLoading, setIsMasterLoading] = useState(false);
 
-  const fetchMaster = async (userId: string) => {
+  const fetchMaster = async (userId: string, attempt = 1) => {
     setIsMasterLoading(true);
-    const { data } = await supabase
-      .from("masters")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setMaster(data);
-    setIsMasterLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from("masters")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        // RLS / сеть / просроченный токен — не обнуляем master, пробуем ещё раз
+        console.warn("[fetchMaster] attempt", attempt, error.code, error.message);
+        if (attempt < 3) {
+          await new Promise((r) => setTimeout(r, 600 * attempt));
+          return fetchMaster(userId, attempt + 1);
+        }
+        // После 3 попыток — оставляем master как есть (не редиректим на онбординг)
+        return;
+      }
+
+      setMaster(data); // null = мастера нет, иначе объект
+    } finally {
+      setIsMasterLoading(false);
+    }
   };
 
   useEffect(() => {

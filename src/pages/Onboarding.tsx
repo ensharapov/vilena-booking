@@ -44,7 +44,9 @@ export default function Onboarding() {
 
       if (error) {
         if (error.code === "23505") {
-          toast({ title: "Ошибка", description: "Эта ссылка уже занята", variant: "destructive" });
+          // Либо slug занят, либо у этого user_id уже есть мастер —
+          // в любом случае мастер существует, просто переходим в приложение
+          window.location.href = "/today";
           return;
         }
         throw error;
