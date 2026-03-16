@@ -104,9 +104,9 @@ export default function Calendar() {
       title={`${RUSSIAN_MONTHS[calMonth]} ${calYear}`}
       headerRight={navButtons}
     >
-      {/* Calendar grid — всегда 6 рядов, не прыгает */}
-      <div className="px-4">
-        <div className="grid grid-cols-7">
+      {/* Calendar grid — всегда 6 рядов, не прыгает; w-full+overflow-hidden фиксируют ширину */}
+      <div className="px-4 w-full overflow-hidden">
+        <div className="grid grid-cols-7 w-full">
           {RUSSIAN_WEEKDAYS.map((d) => (
             <div key={d} className="text-center text-xs text-muted-foreground font-medium py-2">
               {d}
