@@ -21,29 +21,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isMasterLoading, setIsMasterLoading] = useState(false);
 
-  // БАГ 1 ИСПРАВЛЕН: убран try/finally — setIsMasterLoading(false) только в явных точках выхода
   const fetchMaster = async (userId: string, attempt = 1) => {
     setIsMasterLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("masters")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    const { data, error } = await supabase
-      .from("masters")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (error) {
-      console.warn("[fetchMaster] attempt", attempt, error.code, error.message);
-      if (attempt < 3) {
-        await new Promise((r) => setTimeout(r, 600 * attempt));
-        return fetchMaster(userId, attempt + 1);
+      if (error) {
+        console.warn("[fetchMaster] attempt", attempt, error.code, error.message);
+        if (attempt < 3) {
+          await new Promise((r) => setTimeout(r, 600 * attempt));
+          return fetchMaster(userId, attempt + 1);
+        }
+        // После 3 попыток — не обнуляем master
+        return;
       }
-      // После 3 попыток — не обнуляем master, снимаем флаг
-      setIsMasterLoading(false);
-      return;
-    }
 
-    setMaster(data);
-    setIsMasterLoading(false);
+      setMaster(data);
+    } catch (e) {
+      console.error("[fetchMaster] exception", e);
+    } finally {
+      setIsMasterLoading(false); // гарантированно, даже при throw
+    }
   };
 
   useEffect(() => {
@@ -51,21 +53,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const sessionTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
 
-    Promise.race([supabase.auth.getSession(), sessionTimeout]).then(async (result) => {
-      if (cancelled) return;
+    Promise.race([supabase.auth.getSession(), sessionTimeout])
+      .then(async (result) => {
+        if (cancelled) return;
 
-      if (result === null) {
-        setIsLoading(false);
-        return;
-      }
+        if (result === null) {
+          setIsLoading(false);
+          return;
+        }
 
-      const { data: { session } } = result;
-      setSession(session);
-      if (session?.user) await fetchMaster(session.user.id);
-      if (!cancelled) setIsLoading(false);
-    });
+        const { data: { session } } = result;
+        setSession(session);
+        if (session?.user) await fetchMaster(session.user.id);
+        if (!cancelled) setIsLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setIsLoading(false); // гарантированно при любом исключении
+      });
 
-    // БАГ 2 ИСПРАВЛЕН: игнорируем INITIAL_SESSION — его обрабатывает getSession() выше
+    // INITIAL_SESSION обрабатывает getSession() выше — игнорируем
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (_event === "INITIAL_SESSION") return;
