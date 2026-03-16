@@ -8,7 +8,7 @@ interface CrmProps {
 }
 
 interface ClientStats {
-    id: string; // client_id (или телефон как fallback)
+    id: string;
     name: string;
     phone: string;
     ltv: number;
@@ -35,15 +35,13 @@ export function CrmTable({ masterId }: CrmProps) {
           date
         `)
                 .eq("master_id", masterId)
-                .in("status", ["completed", "upcoming"]); // Учитываем будущие и прошлые (отмененные не считаем в LTV)
+                .in("status", ["completed", "upcoming"]);
 
             if (error) throw error;
 
-            // Аггрегируем данные по клиенту
             const clientMap = new Map<string, ClientStats>();
 
             data?.forEach((b) => {
-                // Уникальный ID клиента: client_id из базы, либо телефон (fallback для старых записей)
                 const uid = b.client_id || b.client_phone || "unknown";
 
                 if (!clientMap.has(uid)) {
@@ -90,6 +88,7 @@ export function CrmTable({ masterId }: CrmProps) {
 
     return (
         <div className="space-y-4">
+            {/* Поиск */}
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
@@ -101,16 +100,20 @@ export function CrmTable({ masterId }: CrmProps) {
                 />
             </div>
 
-            <div className="space-y-3">
-                {filteredClients.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                        Клиенты не найдены
-                    </div>
-                ) : (
-                    filteredClients.map((client) => (
-                        <div key={client.id} className="card-premium p-4 flex items-center justify-between">
+            {/* Список клиентов — iOS-стиль */}
+            {filteredClients.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                    Клиенты не найдены
+                </div>
+            ) : (
+                <div className="bg-card rounded-2xl overflow-hidden">
+                    {filteredClients.map((client) => (
+                        <div
+                            key={client.id}
+                            className="flex items-center justify-between px-5 py-3.5 border-b border-border/40 last:border-b-0"
+                        >
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                                     <User className="w-4 h-4 text-primary" />
                                 </div>
                                 <div>
@@ -126,15 +129,15 @@ export function CrmTable({ masterId }: CrmProps) {
                                     <span>{client.ltv.toLocaleString("ru-RU")} ₽</span>
                                     <TrendingUp className="w-3.5 h-3.5" />
                                 </div>
-                                <div className="flex items-center gap-1 mt-1 text-muted-foreground text-[11px]">
+                                <div className="flex items-center gap-1 mt-0.5 text-muted-foreground text-[11px]">
                                     <CalendarDays className="w-3 h-3" />
                                     Визитов: {client.visits}
                                 </div>
                             </div>
                         </div>
-                    ))
-                )}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
