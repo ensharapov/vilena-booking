@@ -65,7 +65,7 @@ export default function Calendar() {
 
   const selectedBookings = selectedDay ? bookingsByDay.get(selectedDay) ?? [] : [];
 
-  // Always 42 cells (6 rows × 7 cols) — grid stays same height every month
+  // Всегда 42 ячейки (6 рядов × 7) — высота сетки не прыгает
   const firstDayOfMonth = new Date(calYear, calMonth, 1).getDay();
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
@@ -85,30 +85,30 @@ export default function Calendar() {
   const isCurrentMonth = calYear === now.getFullYear() && calMonth === now.getMonth();
 
   return (
-    <div className="app-container bg-background min-h-screen">
+    <div className="app-container bg-background min-h-screen pb-28">
       {/* Month header */}
-      <div className="px-4 pt-6 pb-2 flex items-center justify-between">
+      <div className="px-5 pt-6 pb-4 flex items-center justify-between">
         <h1 className="text-heading text-xl font-bold text-foreground">
           {RUSSIAN_MONTHS[calMonth]} {calYear}
         </h1>
         <div className="flex gap-2">
           <button
             onClick={prevMonth}
-            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground active:bg-secondary transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={nextMonth}
-            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground active:bg-secondary transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Calendar grid — always 6 rows, never jumps */}
-      <div className="px-4 mt-2">
+      {/* Calendar grid — всегда 6 рядов, не прыгает */}
+      <div className="px-4">
         <div className="grid grid-cols-7">
           {RUSSIAN_WEEKDAYS.map((d) => (
             <div key={d} className="text-center text-xs text-muted-foreground font-medium py-2">
@@ -134,14 +134,14 @@ export default function Calendar() {
               <button
                 key={day}
                 onClick={() => setSelectedDay(day)}
-                className={`relative flex flex-col items-center justify-center h-11 w-full text-sm rounded-xl ${
+                className={`relative flex flex-col items-center justify-center h-11 w-full text-sm rounded-xl transition-colors ${
                   isSelected
                     ? "bg-primary text-primary-foreground font-semibold"
                     : isToday
                       ? "bg-accent font-semibold text-foreground"
                       : isPast
                         ? "text-muted-foreground/40"
-                        : "text-foreground"
+                        : "text-foreground active:bg-secondary"
                 }`}
               >
                 {bookingCount > 0 && !isSelected && (
@@ -176,8 +176,8 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* Bookings — fixed min-height so page doesn't jump */}
-      <div className="px-4 mt-4 pb-4 min-h-[220px]">
+      {/* Bookings — фиксированная min-height, не прыгает */}
+      <div className="mt-5 px-5 pb-4 min-h-[220px]">
         <h2 className="text-heading text-base font-bold text-foreground mb-3">
           {selectedDay
             ? `${selectedDay} ${RUSSIAN_MONTHS_GEN[calMonth]}`
@@ -195,24 +195,22 @@ export default function Calendar() {
             {workingDates.includes(selectedDay) ? "Нет записей" : "Нерабочий день"}
           </p>
         ) : (
-          <div className="space-y-3">
+          <div className="bg-card rounded-2xl overflow-hidden">
             {selectedBookings.map((booking) => {
               const servicesList = booking.booking_services?.map((s) => s.name).join(", ") || "Без услуг";
               return (
                 <div
                   key={booking.id}
-                  className="card-premium p-4 flex items-center gap-3 cursor-pointer active:scale-[0.98] transition-transform"
+                  className="flex items-center gap-3 px-5 py-3.5 border-b border-border/40 last:border-b-0 cursor-pointer active:bg-secondary/50 transition-colors"
                   onClick={() => setSelectedBooking(booking)}
                 >
-                  <div className="w-14 text-center shrink-0">
+                  <div className="w-14 shrink-0 text-center">
                     <p className="text-foreground font-bold text-sm">{booking.start_time.slice(0, 5)}</p>
                     <p className="text-muted-foreground text-[10px]">{booking.end_time.slice(0, 5)}</p>
                   </div>
-                  <div className="w-px h-10 bg-border shrink-0" />
+                  <div className="w-px h-8 bg-border/60 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground text-sm truncate">
-                      {booking.client_name || "Клиент"}
-                    </p>
+                    <p className="font-medium text-foreground text-sm truncate">{booking.client_name || "Клиент"}</p>
                     <p className="text-muted-foreground text-xs truncate">{servicesList}</p>
                   </div>
                   <div className="text-right shrink-0">

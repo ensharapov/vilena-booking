@@ -30,13 +30,11 @@ export default function Today() {
   const todayStr = formatLocalDate(now);
   const dateLabel = `${now.getDate()} ${RUSSIAN_MONTHS_GEN[now.getMonth()]}, ${WEEKDAYS[now.getDay()]}`;
 
-  // Записи на сегодня
   const todayBookings = useMemo(
     () => allBookings.filter((b) => b.date === todayStr),
     [allBookings, todayStr]
   );
 
-  // Следующая запись
   const nextBooking = useMemo(() => {
     const nowTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     return todayBookings.find((b) => b.start_time >= nowTime) ?? null;
@@ -48,39 +46,41 @@ export default function Today() {
   );
 
   return (
-    <div className="app-container bg-background min-h-screen">
+    <div className="app-container bg-background min-h-screen pb-28">
       {/* Header */}
-      <div className="px-4 pt-6 pb-2">
+      <div className="px-5 pt-6 pb-4">
         <p className="text-muted-foreground text-sm">{getGreeting()},</p>
         <h1 className="text-heading text-2xl font-bold text-foreground">{master?.name || "Мастер"}</h1>
         <p className="text-muted-foreground text-xs mt-1 capitalize">{dateLabel}</p>
       </div>
 
-      {/* Summary strip */}
-      <div className="px-4 mt-4 grid grid-cols-3 gap-3">
-        <div className="card-premium p-3 text-center">
-          <CalendarCheck className="w-4 h-4 text-primary mx-auto mb-1" />
-          <p className="text-foreground font-bold text-lg">{stats?.todayCount ?? 0}</p>
-          <p className="text-muted-foreground text-[10px]">Записей</p>
-        </div>
-        <div className="card-premium p-3 text-center">
-          <Clock className="w-4 h-4 text-telegram mx-auto mb-1" />
-          <p className="text-foreground font-bold text-sm">
-            {nextBooking ? nextBooking.start_time.slice(0, 5) : "—"}
-          </p>
-          <p className="text-muted-foreground text-[10px]">Следующая</p>
-        </div>
-        <div className="card-premium p-3 text-center">
-          <TrendingUp className="w-4 h-4 text-whatsapp mx-auto mb-1" />
-          <p className="text-foreground font-bold text-sm">
-            {todayIncome > 0 ? `${todayIncome.toLocaleString("ru-RU")} ₽` : "—"}
-          </p>
-          <p className="text-muted-foreground text-[10px]">Сегодня</p>
+      {/* Summary strip — единый блок с разделителями */}
+      <div className="mx-5 bg-card rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-3">
+          <div className="p-4 text-center border-r border-border/40">
+            <CalendarCheck className="w-4 h-4 text-primary mx-auto mb-1.5" />
+            <p className="text-foreground font-bold text-lg leading-none">{stats?.todayCount ?? 0}</p>
+            <p className="text-muted-foreground text-[10px] mt-1">Записей</p>
+          </div>
+          <div className="p-4 text-center border-r border-border/40">
+            <Clock className="w-4 h-4 text-telegram mx-auto mb-1.5" />
+            <p className="text-foreground font-bold text-sm leading-none">
+              {nextBooking ? nextBooking.start_time.slice(0, 5) : "—"}
+            </p>
+            <p className="text-muted-foreground text-[10px] mt-1">Следующая</p>
+          </div>
+          <div className="p-4 text-center">
+            <TrendingUp className="w-4 h-4 text-whatsapp mx-auto mb-1.5" />
+            <p className="text-foreground font-bold text-sm leading-none">
+              {todayIncome > 0 ? `${todayIncome.toLocaleString("ru-RU")} ₽` : "—"}
+            </p>
+            <p className="text-muted-foreground text-[10px] mt-1">Сегодня</p>
+          </div>
         </div>
       </div>
 
       {/* Timeline */}
-      <div className="px-4 mt-6">
+      <div className="mt-6 px-5">
         <h2 className="text-heading text-lg font-bold text-foreground mb-3">Расписание</h2>
 
         {bookingsLoading ? (
@@ -91,29 +91,27 @@ export default function Today() {
           <div className="text-center py-12">
             <CalendarCheck className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-muted-foreground text-sm">Нет записей на сегодня</p>
-            <p className="text-muted-foreground text-xs mt-1">
-              Клиенты могут записаться по вашей ссылке
-            </p>
+            <p className="text-muted-foreground text-xs mt-1">Клиенты могут записаться по вашей ссылке</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="bg-card rounded-2xl overflow-hidden">
             {todayBookings.map((booking) => (
-              <BookingCard key={booking.id} booking={booking} onClick={() => setSelectedBooking(booking)} />
+              <BookingRow key={booking.id} booking={booking} onClick={() => setSelectedBooking(booking)} />
             ))}
           </div>
         )}
       </div>
 
-      {/* Upcoming (other days) */}
+      {/* Upcoming */}
       {allBookings.filter((b) => b.date > todayStr).length > 0 && (
-        <div className="px-4 mt-8 mb-4">
+        <div className="mt-8 px-5 mb-4">
           <h2 className="text-heading text-lg font-bold text-foreground mb-3">Ближайшие</h2>
-          <div className="space-y-3">
+          <div className="bg-card rounded-2xl overflow-hidden">
             {allBookings
               .filter((b) => b.date > todayStr)
               .slice(0, 5)
               .map((booking) => (
-                <BookingCard key={booking.id} booking={booking} showDate onClick={() => setSelectedBooking(booking)} />
+                <BookingRow key={booking.id} booking={booking} showDate onClick={() => setSelectedBooking(booking)} />
               ))}
           </div>
         </div>
@@ -128,35 +126,30 @@ export default function Today() {
   );
 }
 
-function BookingCard({ booking, showDate, onClick }: { booking: BookingWithServices; showDate?: boolean; onClick?: () => void }) {
+function BookingRow({ booking, showDate, onClick }: { booking: BookingWithServices; showDate?: boolean; onClick?: () => void }) {
   const servicesList = booking.booking_services?.map((s) => s.name).join(", ") || "Без услуг";
-
   const d = new Date(booking.date);
   const formattedDate = `${d.getDate().toString().padStart(2, "0")}.${(d.getMonth() + 1).toString().padStart(2, "0")}`;
 
   return (
-    <div className="card-premium p-4 flex items-center gap-3 animate-fade-in cursor-pointer active:scale-[0.98] transition-transform" onClick={onClick}>
-      {/* Time block */}
-      <div className="w-14 text-center shrink-0">
+    <div
+      className="flex items-center gap-3 px-5 py-3.5 border-b border-border/40 last:border-b-0 cursor-pointer active:bg-secondary/50 transition-colors"
+      onClick={onClick}
+    >
+      <div className="w-14 shrink-0 text-center">
         <p className="text-foreground font-bold text-sm">{booking.start_time.slice(0, 5)}</p>
         <p className="text-muted-foreground text-[10px]">{booking.end_time.slice(0, 5)}</p>
       </div>
 
-      <div className="w-px h-10 bg-border shrink-0" />
+      <div className="w-px h-8 bg-border/60 shrink-0" />
 
-      {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-foreground text-sm truncate">
-          {booking.client_name || "Клиент"}
-        </p>
+        <p className="font-medium text-foreground text-sm truncate">{booking.client_name || "Клиент"}</p>
         <p className="text-muted-foreground text-xs truncate">{servicesList}</p>
       </div>
 
-      {/* Price / Date */}
       <div className="text-right shrink-0">
-        <p className="text-foreground font-semibold text-sm">
-          {booking.total_price.toLocaleString("ru-RU")} ₽
-        </p>
+        <p className="text-foreground font-semibold text-sm">{booking.total_price.toLocaleString("ru-RU")} ₽</p>
         {showDate && <p className="text-muted-foreground text-xs">{formattedDate}</p>}
       </div>
     </div>
