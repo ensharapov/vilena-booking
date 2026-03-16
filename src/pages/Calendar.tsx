@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useWorkingDates } from "@/hooks/useMasterData";
 import type { BookingWithServices } from "@/hooks/useMasterDashboard";
 import { BookingDetailDrawer } from "@/components/BookingDetailDrawer";
+import { PageLayout } from "@/components/PageLayout";
 import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 const RUSSIAN_MONTHS = [
@@ -22,10 +23,8 @@ function useMonthBookings(masterId: string | undefined, year: number, month: num
     queryKey: ["month_bookings", masterId, year, month],
     queryFn: async (): Promise<BookingWithServices[]> => {
       if (!masterId) return [];
-
       const firstDay = `${year}-${String(month + 1).padStart(2, "0")}-01`;
       const lastDay = `${year}-${String(month + 1).padStart(2, "0")}-${new Date(year, month + 1, 0).getDate()}`;
-
       const { data, error } = await supabase
         .from("bookings")
         .select("*, booking_services (*)")
@@ -34,7 +33,6 @@ function useMonthBookings(masterId: string | undefined, year: number, month: num
         .lte("date", lastDay)
         .neq("status", "cancelled")
         .order("start_time", { ascending: true });
-
       if (error) throw error;
       return data as BookingWithServices[];
     },
@@ -84,29 +82,28 @@ export default function Calendar() {
 
   const isCurrentMonth = calYear === now.getFullYear() && calMonth === now.getMonth();
 
-  return (
-    <div className="app-container bg-background min-h-screen pb-28">
-      {/* Month header */}
-      <div className="px-5 pt-6 pb-4 flex items-center justify-between">
-        <h1 className="text-heading text-xl font-bold text-foreground">
-          {RUSSIAN_MONTHS[calMonth]} {calYear}
-        </h1>
-        <div className="flex gap-2">
-          <button
-            onClick={prevMonth}
-            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground active:bg-secondary transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            onClick={nextMonth}
-            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground active:bg-secondary transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+  const navButtons = (
+    <div className="flex gap-2">
+      <button
+        onClick={prevMonth}
+        className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground active:bg-secondary transition-colors"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+      <button
+        onClick={nextMonth}
+        className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground active:bg-secondary transition-colors"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
 
+  return (
+    <PageLayout
+      title={`${RUSSIAN_MONTHS[calMonth]} ${calYear}`}
+      headerRight={navButtons}
+    >
       {/* Calendar grid — всегда 6 рядов, не прыгает */}
       <div className="px-4">
         <div className="grid grid-cols-7">
@@ -230,6 +227,6 @@ export default function Calendar() {
         open={!!selectedBooking}
         onOpenChange={(open) => { if (!open) setSelectedBooking(null); }}
       />
-    </div>
+    </PageLayout>
   );
 }

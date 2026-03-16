@@ -3,13 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUpcomingBookings, useMasterStats, type BookingWithServices } from "@/hooks/useMasterDashboard";
 import { formatLocalDate } from "@/lib/formatLocalDate";
 import { BookingDetailDrawer } from "@/components/BookingDetailDrawer";
+import { PageLayout } from "@/components/PageLayout";
 import { Loader2, Clock, CalendarCheck, TrendingUp } from "lucide-react";
 
 const RUSSIAN_MONTHS_GEN = [
   "января", "февраля", "марта", "апреля", "мая", "июня",
   "июля", "августа", "сентября", "октября", "ноября", "декабря",
 ];
-
 const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
 
 function getGreeting(): string {
@@ -46,15 +46,12 @@ export default function Today() {
   );
 
   return (
-    <div className="app-container bg-background min-h-screen pb-28">
-      {/* Header */}
-      <div className="px-5 pt-6 pb-4">
-        <p className="text-muted-foreground text-sm">{getGreeting()},</p>
-        <h1 className="text-heading text-2xl font-bold text-foreground">{master?.name || "Мастер"}</h1>
-        <p className="text-muted-foreground text-xs mt-1 capitalize">{dateLabel}</p>
-      </div>
-
-      {/* Summary strip — единый блок с разделителями */}
+    <PageLayout
+      titlePrefix={`${getGreeting()},`}
+      title={master?.name || "Мастер"}
+      subtitle={dateLabel}
+    >
+      {/* Summary strip */}
       <div className="mx-5 bg-card rounded-2xl overflow-hidden">
         <div className="grid grid-cols-3">
           <div className="p-4 text-center border-r border-border/40">
@@ -122,11 +119,19 @@ export default function Today() {
         open={!!selectedBooking}
         onOpenChange={(open) => { if (!open) setSelectedBooking(null); }}
       />
-    </div>
+    </PageLayout>
   );
 }
 
-function BookingRow({ booking, showDate, onClick }: { booking: BookingWithServices; showDate?: boolean; onClick?: () => void }) {
+function BookingRow({
+  booking,
+  showDate,
+  onClick,
+}: {
+  booking: BookingWithServices;
+  showDate?: boolean;
+  onClick?: () => void;
+}) {
   const servicesList = booking.booking_services?.map((s) => s.name).join(", ") || "Без услуг";
   const d = new Date(booking.date);
   const formattedDate = `${d.getDate().toString().padStart(2, "0")}.${(d.getMonth() + 1).toString().padStart(2, "0")}`;
@@ -140,14 +145,11 @@ function BookingRow({ booking, showDate, onClick }: { booking: BookingWithServic
         <p className="text-foreground font-bold text-sm">{booking.start_time.slice(0, 5)}</p>
         <p className="text-muted-foreground text-[10px]">{booking.end_time.slice(0, 5)}</p>
       </div>
-
       <div className="w-px h-8 bg-border/60 shrink-0" />
-
       <div className="flex-1 min-w-0">
         <p className="font-medium text-foreground text-sm truncate">{booking.client_name || "Клиент"}</p>
         <p className="text-muted-foreground text-xs truncate">{servicesList}</p>
       </div>
-
       <div className="text-right shrink-0">
         <p className="text-foreground font-semibold text-sm">{booking.total_price.toLocaleString("ru-RU")} ₽</p>
         {showDate && <p className="text-muted-foreground text-xs">{formattedDate}</p>}

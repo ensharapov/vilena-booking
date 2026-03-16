@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Users, Settings, Link as LinkIcon, LogOut, Calendar, Scissors, ChevronRight } from "lucide-react";
 import { ShiftManager } from "@/components/master/ShiftManager";
+import { PageLayout } from "@/components/PageLayout";
 
 export default function More() {
   const { master, signOut } = useAuth();
@@ -22,17 +23,10 @@ export default function More() {
   };
 
   return (
-    <div className="app-container bg-background min-h-screen pb-28">
-      {/* Header */}
-      <div className="px-5 pt-6 pb-6">
-        <h1 className="text-heading text-2xl font-bold text-foreground">
-          {master?.name || "Мастер"}
-        </h1>
-        {master?.specialty && (
-          <p className="text-muted-foreground text-sm mt-1">{master.specialty}</p>
-        )}
-      </div>
-
+    <PageLayout
+      title={master?.name || "Мастер"}
+      subtitle={master?.specialty ?? undefined}
+    >
       {/* Основное меню — iOS-стиль, один блок с разделителями */}
       <div className="mx-5 bg-card rounded-2xl overflow-hidden">
         <button
@@ -108,6 +102,6 @@ export default function More() {
           <ChevronRight className="w-4 h-4 text-destructive/40 shrink-0" />
         </button>
       </div>
-    </div>
+    </PageLayout>
   );
 }

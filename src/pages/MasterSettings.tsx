@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Save, Loader2, Link as LinkIcon, Phone, Bell, CheckCircle2 } from "lucide-react";
+import { Save, Loader2, Link as LinkIcon, Phone, Bell, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { PageLayout } from "@/components/PageLayout";
 
 const BOT_USERNAME = import.meta.env.VITE_TELEGRAM_BOT_USERNAME ?? "";
 
@@ -18,7 +18,6 @@ const CONTACT_FIELDS = [
 type ContactKey = typeof CONTACT_FIELDS[number]["key"];
 
 export default function MasterSettings() {
-    const navigate = useNavigate();
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
@@ -31,7 +30,6 @@ export default function MasterSettings() {
         phone: "",
     });
 
-    // Получаем запись мастера по user_id из сессии
     const { data: master, isLoading } = useQuery({
         queryKey: ["master_settings"],
         queryFn: async () => {
@@ -75,13 +73,10 @@ export default function MasterSettings() {
     const updateProfile = useMutation({
         mutationFn: async () => {
             if (!master?.id) throw new Error("Мастер не найден");
-
-            // Сохраняем только заполненные контакты
             const linksObj: Record<string, string> = {};
             (Object.keys(contacts) as ContactKey[]).forEach((k) => {
                 if (contacts[k].trim()) linksObj[k] = contacts[k].trim();
             });
-
             const { error } = await supabase
                 .from("masters")
                 .update({
@@ -90,7 +85,6 @@ export default function MasterSettings() {
                     social_links: linksObj,
                 })
                 .eq("id", master.id);
-
             if (error) throw error;
         },
         onSuccess: () => {
@@ -131,14 +125,7 @@ export default function MasterSettings() {
     }
 
     return (
-        <div className="app-container bg-background min-h-screen pb-24">
-            <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/50 px-5 py-4 flex items-center gap-3">
-                <button onClick={() => navigate(-1)} className="w-10 h-10 -ml-2 rounded-full flex items-center justify-center active:bg-secondary">
-                    <ArrowLeft className="w-6 h-6 text-foreground" />
-                </button>
-                <h1 className="text-lg font-bold">Настройки профиля</h1>
-            </header>
-
+        <PageLayout variant="subpage" title="Настройки профиля">
             <div className="p-5 space-y-7">
                 {/* Основная информация */}
                 <section className="space-y-4">
@@ -182,7 +169,6 @@ export default function MasterSettings() {
                         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Контакты для связи</h2>
                         <p className="text-[11px] text-muted-foreground mt-1">Отображаются на странице для уточнений от клиента. Заполните те, которые хотите показать.</p>
                     </div>
-
                     <div className="space-y-3">
                         {CONTACT_FIELDS.map(({ key, label, placeholder }) => (
                             <div key={key} className="space-y-1">
@@ -258,6 +244,6 @@ export default function MasterSettings() {
                     Сохранить настройки
                 </button>
             </div>
-        </div>
+        </PageLayout>
     );
 }
