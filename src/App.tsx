@@ -30,9 +30,9 @@ const queryClient = new QueryClient({
 });
 
 function RootRedirect() {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, isMasterLoading } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || isMasterLoading) {
     return (
       <div className="app-container flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -44,9 +44,9 @@ function RootRedirect() {
 }
 
 function OnboardingRoute() {
-  const { session, master, isLoading } = useAuth();
+  const { session, master, isLoading, isMasterLoading } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || isMasterLoading) {
     return (
       <div className="app-container flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

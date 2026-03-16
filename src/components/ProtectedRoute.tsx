@@ -3,9 +3,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, master, isLoading } = useAuth();
+  const { session, master, isLoading, isMasterLoading } = useAuth();
 
-  if (isLoading) {
+  // Ждём и начальный isLoading, и загрузку мастера после авторизации
+  if (isLoading || isMasterLoading) {
     return (
       <div className="app-container flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -17,6 +18,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
 
+  // Только после завершения загрузки мастера редиректим на онбординг
   if (!master) {
     return <Navigate to="/onboarding" replace />;
   }

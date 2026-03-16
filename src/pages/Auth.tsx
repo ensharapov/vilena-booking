@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -11,9 +11,20 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, session, master, isMasterLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Редиректим ПОСЛЕ того как master загрузился, а не сразу после signIn
+  useEffect(() => {
+    if (session && !isMasterLoading) {
+      if (master) {
+        navigate("/today", { replace: true });
+      } else {
+        navigate("/onboarding", { replace: true });
+      }
+    }
+  }, [session, master, isMasterLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +49,8 @@ const Auth = () => {
           title: "Регистрация успешна",
           description: "Проверьте почту для подтверждения",
         });
-        return;
       }
-
-      // При входе — навигация произойдёт через ProtectedRoute/redirect
-      navigate("/today");
+      // Навигация произойдёт автоматически через useEffect выше
     } finally {
       setIsSubmitting(false);
     }
@@ -61,15 +69,13 @@ const Auth = () => {
         <div className="flex gap-1 bg-secondary rounded-xl p-1 mb-8">
           <button
             onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${isLogin ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
-              }`}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${isLogin ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
           >
             Вход
           </button>
           <button
             onClick={() => setIsLogin(false)}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${!isLogin ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
-              }`}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${!isLogin ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}
           >
             Регистрация
           </button>

@@ -7,6 +7,7 @@ interface AuthState {
   user: User | null;
   master: DBMaster | null;
   isLoading: boolean;
+  isMasterLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -18,15 +19,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [master, setMaster] = useState<DBMaster | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Флаг: fetchMaster запущен, но ещё не завершился — не редиректить на онбординг
+  const [isMasterLoading, setIsMasterLoading] = useState(false);
 
-  // Загрузить профиль мастера по user_id
   const fetchMaster = async (userId: string) => {
+    setIsMasterLoading(true);
     const { data } = await supabase
       .from("masters")
       .select("*")
       .eq("user_id", userId)
       .maybeSingle();
     setMaster(data);
+    setIsMasterLoading(false);
   };
 
   useEffect(() => {
@@ -39,19 +43,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (cancelled) return;
 
       if (result === null) {
-        // Таймаут — getSession завис (старый кэш / плохая сеть)
         setIsLoading(false);
         return;
       }
 
       const { data: { session } } = result;
       setSession(session);
-      // Ждём fetchMaster перед снятием isLoading — иначе ProtectedRoute уйдёт в онбординг
       if (session?.user) await fetchMaster(session.user.id);
       if (!cancelled) setIsLoading(false);
     });
 
-    // Слушать изменения авторизации
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
@@ -59,6 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           await fetchMaster(session.user.id);
         } else {
           setMaster(null);
+          setIsMasterLoading(false);
         }
       }
     );
@@ -89,6 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
     setSession(null);
     setMaster(null);
+    setIsMasterLoading(false);
   };
 
   return (
@@ -98,6 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user: session?.user ?? null,
         master,
         isLoading,
+        isMasterLoading,
         signIn,
         signUp,
         signOut,
