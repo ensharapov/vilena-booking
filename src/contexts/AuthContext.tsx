@@ -19,39 +19,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [master, setMaster] = useState<DBMaster | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // Флаг: fetchMaster запущен, но ещё не завершился — не редиректить на онбординг
   const [isMasterLoading, setIsMasterLoading] = useState(false);
 
+  // БАГ 1 ИСПРАВЛЕН: убран try/finally — setIsMasterLoading(false) только в явных точках выхода
   const fetchMaster = async (userId: string, attempt = 1) => {
     setIsMasterLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("masters")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
 
-      if (error) {
-        // RLS / сеть / просроченный токен — не обнуляем master, пробуем ещё раз
-        console.warn("[fetchMaster] attempt", attempt, error.code, error.message);
-        if (attempt < 3) {
-          await new Promise((r) => setTimeout(r, 600 * attempt));
-          return fetchMaster(userId, attempt + 1);
-        }
-        // После 3 попыток — оставляем master как есть (не редиректим на онбординг)
-        return;
+    const { data, error } = await supabase
+      .from("masters")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn("[fetchMaster] attempt", attempt, error.code, error.message);
+      if (attempt < 3) {
+        await new Promise((r) => setTimeout(r, 600 * attempt));
+        return fetchMaster(userId, attempt + 1);
       }
-
-      setMaster(data); // null = мастера нет, иначе объект
-    } finally {
+      // После 3 попыток — не обнуляем master, снимаем флаг
       setIsMasterLoading(false);
+      return;
     }
+
+    setMaster(data);
+    setIsMasterLoading(false);
   };
 
   useEffect(() => {
     let cancelled = false;
 
-    // Race getSession с таймаутом — если зависает, через 5с показываем app
     const sessionTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
 
     Promise.race([supabase.auth.getSession(), sessionTimeout]).then(async (result) => {
@@ -68,8 +65,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!cancelled) setIsLoading(false);
     });
 
+    // БАГ 2 ИСПРАВЛЕН: игнорируем INITIAL_SESSION — его обрабатывает getSession() выше
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (_event === "INITIAL_SESSION") return;
+
         setSession(session);
         if (session?.user) {
           await fetchMaster(session.user.id);
